@@ -154,6 +154,17 @@ generated state.
 
 See `deployed-contracts.json` for machine-readable format.
 
+## Screenshots
+
+### Compile output
+![Compile output](screenshots/compile.png)
+
+### Contract deployed on Preview
+![Preview deploy](screenshots/preview-deploy.png)
+
+### E2E test passing
+![E2E check](screenshots/e2e-check-preview.png)
+
 ## Public State vs Private Witness
 
 Midnight contracts distinguish between **public state** and **private witnesses**:
