@@ -1,6 +1,10 @@
-# myapp
+# Getting Started with Midnight
 
-A Midnight Network smart contract scaffolded with create-mn-app.
+A decentralized message board built on Midnight Network — users can store and retrieve messages on-chain with the privacy guarantees of zero-knowledge proofs. This project demonstrates the core Midnight development workflow: writing a Compact smart contract, compiling circuits, deploying to multiple networks, and interacting via a CLI.
+
+## Product Idea
+
+A decentralized message board where anyone can store a public message on the Midnight blockchain. Each update generates a zero-knowledge proof that the transaction is valid, while the message itself remains visible to all — perfect for verifiable public announcements, attestations, or simple social applications that benefit from Midnight's unique balance of transparency and privacy.
 
 ## Quick start
 
@@ -149,6 +153,17 @@ generated state.
 | preview | `90df1524df9f9e03812331db78e2859cbc5e9c20491b55b98df34cb79636a3ff` |
 
 See `deployed-contracts.json` for machine-readable format.
+
+## Public State vs Private Witness
+
+Midnight contracts distinguish between **public state** and **private witnesses**:
+
+| Concept | Description | Example in this project |
+|---------|-------------|------------------------|
+| **Public state** | Data stored directly on-chain. Visible to every network participant. | The stored message string — anyone can read it via the CLI or indexer. |
+| **Private witness** | Data kept off-chain in the user's wallet. Never transmitted to the network; instead, a zero-knowledge proof attests to its validity. | The wallet's secret key used to sign and authorize transactions. The proof server generates a ZK proof that the caller owns the key without revealing it. |
+
+When you call `storeMessage`, the Compact runtime proves you are the authorized caller (private witness) while writing the new message to the public state. This pattern is foundational to Midnight: the public state is transparent and auditable, while the witness data stays private to the user.
 
 ## Available scripts
 
