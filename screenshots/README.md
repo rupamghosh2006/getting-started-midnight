@@ -1,21 +1,20 @@
 # Screenshots
 
-## 1. Compile Output
-Place a screenshot showing the successful compact compile output with circuits listed.
+Replace the placeholder files below with actual screenshots:
 
-Expected output:
+## 1. compile-output.png
+Run `npm run compile` and capture the output showing:
 ```
-> npm run compile
-> compact compile contracts/hello-world.compact contracts/managed/hello-world
 Compiling 1 circuits:
   circuit "storeMessage" (k=6, rows=26)
+Overall progress [====================] 1/1
 ```
 
-## 2. Contract Deployed
-Place a screenshot showing the contract deployed with the address displayed.
-
-Expected output:
+## 2. deploy-output.png
+Run `npm run deploy -- --network preview` and capture the output showing:
 ```
 ✅ Contract deployed successfully!
-Contract Address: <your-contract-address>
+Contract Address: cab5f6a2807498bc2a0ddce4bf6b6fbbd49eb79e5469232865013972bca8491f
 ```
+
+**Tip:** Use Windows Snipping Tool (Win+Shift+S) or your terminal's screenshot feature.

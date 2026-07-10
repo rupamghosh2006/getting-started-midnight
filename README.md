@@ -150,7 +150,7 @@ generated state.
 | Network | Contract address |
 |---------|-----------------|
 | undeployed | `a08f8441cc80a487a56b40b658bfd6b518a0035ac8cf9deeae13bb09b77d9653` |
-| preview | `90df1524df9f9e03812331db78e2859cbc5e9c20491b55b98df34cb79636a3ff` |
+| preview | `cab5f6a2807498bc2a0ddce4bf6b6fbbd49eb79e5469232865013972bca8491f` |
 
 See `deployed-contracts.json` for machine-readable format.
 

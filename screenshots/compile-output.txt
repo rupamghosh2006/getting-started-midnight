@@ -1,0 +1,8 @@
+$ npm run compile
+
+> myapp@1.0.0 compile
+> compact compile contracts/hello-world.compact contracts/managed/hello-world
+
+Compiling 1 circuits:
+  circuit "storeMessage" (k=6, rows=26)
+Overall progress [====================] 1/1

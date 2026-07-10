@@ -1,0 +1,25 @@
+$ npm run deploy -- --network preview
+
+> myapp@1.0.0 deploy
+> npx tsx src/deploy.ts --network preview
+
+╔══════════════════════════════════════════════════════════════╗
+║  Deploy myapp to preview
+╚══════════════════════════════════════════════════════════════╝
+
+─── Wallet setup ───────────────────────────────────────────────
+  ✓ Synced with network.
+  Wallet Address: mn_addr_preview1jgmj5c0nra8ng000d5nz8p8ze48cq27tkjvmevszqu2atwla4p0q08gnf5
+  Balance: 1,000,000,000 tNight
+
+─── DUST Token Setup ───────────────────────────────────────────
+  DUST tokens ready!
+
+─── Deploy Contract ────────────────────────────────────────────
+  ✓ Proof server ready!
+  ✅ Contract deployed successfully!
+
+  Contract Address: cab5f6a2807498bc2a0ddce4bf6b6fbbd49eb79e5469232865013972bca8491f
+
+─── Deployment complete ────────────────────────────────────────
+  Next: npm run cli
