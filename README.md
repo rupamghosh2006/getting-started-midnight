@@ -2,6 +2,18 @@
 
 A decentralized message board built on Midnight Network — users can store and retrieve messages on-chain with the privacy guarantees of zero-knowledge proofs. This project demonstrates the core Midnight development workflow: writing a Compact smart contract, compiling circuits, deploying to multiple networks, and interacting via a CLI.
 
+## Navigation
+
+- [Product Idea](#product-idea)
+- [Setup Instructions](#quick-start)
+- [Compile Output (Screenshot)](#compile-output)
+- [Contract Deployed on Preview (Screenshot)](#contract-deployed-on-preview)
+- [E2E Test Passing (Screenshot)](#e2e-test-passing)
+- [Public State vs Private Witness](#public-state-vs-private-witness)
+- [Deployed Contracts](#deployed-contracts)
+- [Available Scripts](#available-scripts)
+- [Project Structure](#project-structure)
+
 ## Product Idea
 
 A decentralized message board where anyone can store a public message on the Midnight blockchain. Each update generates a zero-knowledge proof that the transaction is valid, while the message itself remains visible to all — perfect for verifiable public announcements, attestations, or simple social applications that benefit from Midnight's unique balance of transparency and privacy.
