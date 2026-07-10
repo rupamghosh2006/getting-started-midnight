@@ -1,9 +1,9 @@
 {
-  "name": "myapp",
+  "name": "getting-started-midnight",
   "version": "1.0.0",
   "type": "module",
-  "description": "A Midnight Network application created with create-mn-app",
-  "author": "",
+  "description": "A decentralized message board built on Midnight Network demonstrating zero-knowledge smart contracts",
+  "author": "rupamghosh2006",
   "license": "MIT",
   "scripts": {
     "compile": "compact compile contracts/hello-world.compact contracts/managed/hello-world",
