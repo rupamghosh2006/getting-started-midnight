@@ -141,6 +141,15 @@ incompatible state format) the wallet falls back to a fresh from-seed sync
 with a one-line warning. `npm run clean` removes the cache along with other
 generated state.
 
+## Deployed contracts
+
+| Network | Contract address |
+|---------|-----------------|
+| undeployed | `a08f8441cc80a487a56b40b658bfd6b518a0035ac8cf9deeae13bb09b77d9653` |
+| preview | `90df1524df9f9e03812331db78e2859cbc5e9c20491b55b98df34cb79636a3ff` |
+
+See `deployed-contracts.json` for machine-readable format.
+
 ## Available scripts
 
 | Script                  | Description                                                    |
