@@ -82,7 +82,7 @@ function createPublicDataProvider(queryUrl: string) {
   };
 }
 
-function compiledContract() {
+function compiledContract(): any {
   // @ts-expect-error - Contract is a JS module without TS types
   return CompiledContract.make(contractName, Contract).pipe(CompiledContract.withVacantWitnesses);
 }

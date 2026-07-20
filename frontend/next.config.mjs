@@ -15,6 +15,11 @@ const nextConfig = {
       '@contracts': path.resolve(__dirname, '../contracts'),
     };
 
+    config.resolve.modules = [
+      path.resolve(__dirname, 'node_modules'),
+      'node_modules',
+    ];
+
     config.resolve.fallback = {
       ...config.resolve.fallback,
       buffer: require.resolve('buffer/'),
