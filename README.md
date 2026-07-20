@@ -109,7 +109,7 @@ deployed-contracts.json          Recorded deployment address and transaction
 - [x] Observable privacy behavior: accepted-proof receipt without revealing the private input
 - [x] Contract deployed to Preprod with a verifiable address
 - [x] Public live demo
-- [ ] Demo video link
+- [x] Demo video link
 
 ## Demo video
 
