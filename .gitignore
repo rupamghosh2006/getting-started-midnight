@@ -7,6 +7,7 @@ yarn-error.log*
 # Build output
 dist/
 build/
+.next/
 
 # Environment variables
 .env
@@ -43,6 +44,9 @@ pids/
 
 # Coverage directory
 coverage/
+
+# Next.js auto-generated type declarations
+next-env.d.ts
 
 # Private state
 *-state/

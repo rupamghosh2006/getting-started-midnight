@@ -1,7 +1,5 @@
-import dynamic from 'next/dynamic';
-
-const DApp = dynamic(() => import('@/components/DApp'), { ssr: false });
+import ClientDApp from '@/components/ClientDApp';
 
 export default function Home() {
-  return <DApp />;
+  return <ClientDApp />;
 }

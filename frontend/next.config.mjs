@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: path.resolve(__dirname, '..'),
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -18,11 +19,28 @@ const nextConfig = {
       ...config.resolve.fallback,
       buffer: require.resolve('buffer/'),
       process: require.resolve('process/browser'),
+      fs: false,
+      path: false,
+      os: false,
+      crypto: false,
+      stream: false,
+      http: false,
+      https: false,
+      url: false,
+      util: false,
+      assert: false,
+      tls: false,
+      net: false,
     };
 
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
+    };
+
+    config.output = {
+      ...config.output,
+      environment: { ...config.output?.environment, asyncFunction: true },
     };
 
     return config;
