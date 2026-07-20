@@ -9,7 +9,10 @@ const {
 } = await import('@midnight-ntwrk/midnight-js-contracts');
 const { FetchZkConfigProvider } = await import('@midnight-ntwrk/midnight-js-fetch-zk-config-provider');
 const { setNetworkId } = await import('@midnight-ntwrk/midnight-js-network-id');
-const { default: Contract } = await import('@contracts/managed/hello-world/contract/index.js');
+// Compact emits a named `Contract` class. Importing `default` works in some
+// dev bundlers through interop, but is undefined in the production ESM build.
+// `CompiledContract.make` requires this constructor to build its context.
+const { Contract } = await import('@contracts/managed/hello-world/contract/index.js');
 
 export interface WalletSession {
   api: any;
@@ -84,7 +87,6 @@ function createPublicDataProvider(queryUrl: string) {
 }
 
 function compiledContract(): any {
-  // @ts-expect-error - Contract is a JS module without TS types
   return CompiledContract.make(contractName, Contract).pipe(CompiledContract.withVacantWitnesses);
 }
 
