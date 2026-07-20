@@ -18,7 +18,7 @@ A decentralized message board built on Midnight Network — users can store and 
 
 ### Lace frontend and private proof
 
-The browser UI in `frontend/` prefers the 1AM wallet (`window.midnight['1am']`) and falls back to Lace (`window.midnight.mnLace`). It connects to Preprod with `connector.connect('preprod')`, exposes Disconnect, and clears the private form value after every submission attempt or disconnect. Deployment, proving, and transaction submission are performed through the connected wallet, avoiding the headless full-history sync.
+The browser UI in `frontend/` exposes explicit 1AM (`window.midnight['1am']`) and Lace (`window.midnight.mnLace`) connection controls. Each connects to Preprod with `connector.connect('preprod')`, exposes Disconnect, and clears the private form value after every submission attempt or disconnect. Deployment, proving, and transaction submission are performed through the selected wallet, avoiding the headless full-history sync.
 
 `provePrivateKnowledge(accessPhrase: Bytes<21>)` proves private knowledge without placing that phrase in public ledger state. The observable receipt is only `latestProofAccepted` and the `successfulProofs` counter. The phrase predicate is a demo; replace it with a credential or commitment predicate before production use.
 

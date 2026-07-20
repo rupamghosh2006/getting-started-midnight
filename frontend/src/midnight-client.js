@@ -66,20 +66,51 @@ function compiledContract() {
   return CompiledContract.make(contractName, Contract).pipe(CompiledContract.withVacantWitnesses);
 }
 
-async function resolveWallet() {
+function connectorCandidate(...candidates) {
+  return candidates.find((candidate) => typeof candidate?.connect === 'function');
+}
+
+function laceConnector() {
+  const namedConnector = connectorCandidate(
+    globalThis.midnight?.mnLace,
+    globalThis.midnight?.lace,
+    globalThis.mnLace,
+    globalThis.lace,
+  );
+  if (namedConnector) return namedConnector;
+
+  // Current Lace builds may inject under an extension-specific UUID. When
+  // there is exactly one non-1AM DApp connector, it is the Lace selection.
+  const anonymousConnectors = Object.entries(globalThis.midnight ?? {})
+    .filter(([key, candidate]) => key !== '1am' && typeof candidate?.connect === 'function');
+  return anonymousConnectors.length === 1 ? anonymousConnectors[0][1] : undefined;
+}
+
+function detectedMidnightProviders() {
+  const namespace = globalThis.midnight;
+  if (!namespace || typeof namespace !== 'object') return 'none';
+  const keys = Object.keys(namespace);
+  return keys.length ? keys.join(', ') : 'namespace present, no providers';
+}
+
+async function resolveWallet(preferred = 'auto') {
   const started = Date.now();
   while (Date.now() - started < 6000) {
     const oneAm = globalThis.midnight?.['1am'];
-    if (oneAm) return { connector: oneAm, name: '1AM' };
-    const lace = globalThis.midnight?.mnLace;
-    if (lace) return { connector: lace, name: 'Lace' };
+    const lace = laceConnector();
+    if (preferred === '1am' && oneAm) return { connector: oneAm, name: '1AM' };
+    if (preferred === 'lace' && lace) return { connector: lace, name: 'Lace' };
+    if (preferred === 'auto' && oneAm) return { connector: oneAm, name: '1AM' };
+    if (preferred === 'auto' && lace) return { connector: lace, name: 'Lace' };
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error('Install and unlock 1AM or Lace with Midnight Preprod enabled, then refresh this page.');
+  const walletName = preferred === 'lace' ? 'Lace' : preferred === '1am' ? '1AM' : '1AM or Lace';
+  const providers = detectedMidnightProviders();
+  throw new Error(`${walletName} was not injected into this page. Detected Midnight providers: ${providers}. Allow the Lace extension on localhost in its browser extension site-access settings, then reload.`);
 }
 
-export async function connectWallet() {
-  const { connector, name } = await resolveWallet();
+export async function connectWallet(preferred = 'auto') {
+  const { connector, name } = await resolveWallet(preferred);
   const api = await connector.connect('preprod');
   const [config, shielded, unshielded] = await Promise.all([
     api.getConfiguration(),

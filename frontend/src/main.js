@@ -13,6 +13,7 @@ let deploymentTxId = localStorage.getItem('midnight-private-proof:deployment-tx'
 
 const $ = (id) => document.getElementById(id);
 const connectButton = $('connect');
+const laceConnectButton = $('connect-lace');
 const disconnectButton = $('disconnect');
 const proveButton = $('prove');
 const deployButton = $('deploy');
@@ -43,17 +44,19 @@ function setConnected(address) {
   $('wallet-address').title = address;
   $('wallet-visibility').textContent = 'LIVE \u25c9';
   connectButton.disabled = true;
+  laceConnectButton.disabled = true;
   disconnectButton.disabled = false;
   secretInput.disabled = false;
   proveButton.disabled = false;
   deployButton.disabled = false;
-  document.querySelectorAll('[data-action="connect"]').forEach((button) => { button.disabled = true; });
+  document.querySelectorAll('[data-wallet]').forEach((button) => { button.disabled = true; });
 }
 
-async function connect() {
+async function connect(preferred = '1am') {
   try {
-    showStatus('Waiting for 1AM or Lace wallet permission...');
-    session = await connectWallet();
+    const walletName = preferred === 'lace' ? 'Lace' : '1AM';
+    showStatus(`Waiting for ${walletName} wallet permission...`);
+    session = await connectWallet(preferred);
     setConnected(session.address);
     showStatus(`${session.name} connected. Your proof input remains local to the proving flow.`);
   } catch (error) {
@@ -72,11 +75,12 @@ async function disconnect() {
   $('wallet-address').removeAttribute('title');
   $('wallet-visibility').textContent = 'HIDE \u25c9';
   connectButton.disabled = false;
+  laceConnectButton.disabled = false;
   disconnectButton.disabled = true;
   secretInput.disabled = true;
   proveButton.disabled = true;
   deployButton.disabled = true;
-  document.querySelectorAll('[data-action="connect"]').forEach((button) => { button.disabled = false; });
+  document.querySelectorAll('[data-wallet]').forEach((button) => { button.disabled = false; });
   secretInput.value = '';
   showStatus('Wallet disconnected and private input cleared.');
 }
@@ -137,9 +141,10 @@ function filterTransactions(event) {
 }
 
 updateContractUI();
-connectButton.addEventListener('click', connect);
+connectButton.addEventListener('click', () => connect('1am'));
+laceConnectButton.addEventListener('click', () => connect('lace'));
 disconnectButton.addEventListener('click', disconnect);
 proveButton.addEventListener('click', prove);
 deployButton.addEventListener('click', deploy);
 $('transaction-search').addEventListener('input', filterTransactions);
-document.querySelectorAll('[data-action="connect"]').forEach((button) => button.addEventListener('click', connect));
+document.querySelectorAll('[data-wallet]').forEach((button) => button.addEventListener('click', () => connect(button.dataset.wallet)));
