@@ -18,15 +18,17 @@ A decentralized message board built on Midnight Network — users can store and 
 
 ### Lace frontend and private proof
 
-The static UI in `frontend/` detects `window.midnight.mnLace`, connects to Preprod with `connector.connect('preprod')`, exposes Disconnect, and clears the private form value after every submission attempt or disconnect.
+The browser UI in `frontend/` prefers the 1AM wallet (`window.midnight['1am']`) and falls back to Lace (`window.midnight.mnLace`). It connects to Preprod with `connector.connect('preprod')`, exposes Disconnect, and clears the private form value after every submission attempt or disconnect. Deployment, proving, and transaction submission are performed through the connected wallet, avoiding the headless full-history sync.
 
 `provePrivateKnowledge(accessPhrase: Bytes<21>)` proves private knowledge without placing that phrase in public ledger state. The observable receipt is only `latestProofAccepted` and the `successfulProofs` counter. The phrase predicate is a demo; replace it with a credential or commitment predicate before production use.
 
 ```sh
 npm run compile
-npm run deploy -- --network preprod
+npm run web:dev
 npm run verify:preprod
 ```
+
+For a distributable site, run `npm run web:build`; it compiles the contract and includes the required ZK key artifacts in the web bundle.
 
 `verify:preprod` queries the public Preprod indexer and prints the address and Explorer URL. A funded Preprod wallet is required to deploy; this project deliberately does not invent an address.
 
@@ -177,6 +179,7 @@ generated state.
 |---------|-----------------|
 | undeployed | `a08f8441cc80a487a56b40b658bfd6b518a0035ac8cf9deeae13bb09b77d9653` |
 | preview | `cab5f6a2807498bc2a0ddce4bf6b6fbbd49eb79e5469232865013972bca8491f` |
+| preprod | `c456ed849e1e2be80e8e571ec1a8830ef98d87c324659a0ba44aded5361dbc8d` |
 
 See `deployed-contracts.json` for machine-readable format.
 

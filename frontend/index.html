@@ -3,37 +3,126 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Midnight Private Proof</title>
+    <title>1AM Private Proof</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <p class="eyebrow">MIDNIGHT · PREPROD</p>
-      <h1>Prove it. Don’t reveal it.</h1>
-      <p class="lead">Submit a zero-knowledge proof of private knowledge. The phrase stays in this browser; the chain records only an accepted-proof receipt.</p>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#top" aria-label="1AM Private Proof home">
+          <span class="brand-mark" aria-hidden="true"><i></i></span><span>1AM</span><em>PRIVATE PROOF</em>
+        </a>
 
-      <section class="card" aria-labelledby="wallet-title">
-        <div class="row"><h2 id="wallet-title">Lace wallet</h2><span id="connection-badge" class="badge">Disconnected</span></div>
-        <p id="wallet-address" class="mono">No wallet connected</p>
-        <div class="actions">
-          <button id="connect" type="button">Connect Lace</button>
-          <button id="disconnect" type="button" class="secondary" disabled>Disconnect</button>
+        <div class="topbar-tools">
+          <div class="dust-indicator" aria-label="Wallet-sponsored dust fees">
+            <div><span class="dust-orbit">&#9678;</span> DUST <strong>0.0</strong></div>
+            <div class="dust-meter"><i></i></div>
+            <small><b></b> DUST SPONSORED</small>
+          </div>
+          <span class="lightning" aria-hidden="true">&#9889;</span>
+          <div class="network-state"><b>PREPROD</b><span></span><em>SYNCED</em></div>
+          <span id="connection-badge" class="connection-state">DISCONNECTED</span>
+          <button id="connect" class="account-button" type="button">CONNECT WALLET</button>
+          <button id="disconnect" class="disconnect-button" type="button" disabled aria-label="Disconnect wallet">&#215;</button>
         </div>
-      </section>
+      </header>
 
-      <section class="card" aria-labelledby="proof-title">
-        <div class="row"><h2 id="proof-title">Private knowledge proof</h2><span class="badge green">Input remains private</span></div>
-        <label for="secret">Access phrase <span>(never persisted or rendered after submission)</span></label>
-        <input id="secret" type="password" autocomplete="off" spellcheck="false" placeholder="Enter private phrase" disabled />
-        <button id="prove" type="button" disabled>Generate proof &amp; call circuit</button>
-        <p id="status" role="status">Connect Lace on Preprod to continue.</p>
-      </section>
+      <main id="top" class="wallet-dashboard">
+        <section class="balance-grid" aria-label="Private proof account overview">
+          <article class="balance-card hatch">
+            <div class="card-label"><span>&#9673;</span> ZK PROOF RECEIPTS <small>PRIVATE &#9678;</small></div>
+            <strong id="proof-count" class="balance-value">0</strong>
+            <p id="proof-count-note">Accepted proofs on this contract</p>
+          </article>
 
-      <section class="card receipt" aria-labelledby="receipt-title">
-        <h2 id="receipt-title">Public receipt</h2>
-        <dl><div><dt>Contract</dt><dd id="contract-address" class="mono">Set VITE_CONTRACT_ADDRESS before release</dd></div><div><dt>On-chain result</dt><dd id="receipt-result">No proof submitted</dd></div><div><dt>Privacy boundary</dt><dd>Only <code>latestProofAccepted</code> and <code>successfulProofs</code> are public.</dd></div></dl>
-      </section>
-    </main>
-    <script type="module" src="./src/main.js"></script>
+          <article class="balance-card">
+            <div class="card-label"><span>&#9674;</span> PREPROD CONTRACT <small>LIVE &#9678;</small></div>
+            <strong class="balance-value mono contract-dot">1</strong>
+            <p id="contract-address-short" class="address-note">Contract loading&hellip;</p>
+          </article>
+
+          <article class="balance-card">
+            <div class="card-label"><span>&#10045;</span> WALLET CONNECTION <small id="wallet-visibility">HIDE &#9678;</small></div>
+            <strong id="wallet-state" class="balance-value mono">OFF</strong>
+            <p id="wallet-address">No wallet connected</p>
+          </article>
+        </section>
+
+        <section class="quick-actions" aria-label="Private proof actions">
+          <button class="quick-action" data-action="connect" type="button">
+            <span class="action-icon">&#10148;</span><b>CONNECT</b><small>1AM OR LACE</small>
+          </button>
+          <button id="deploy" class="quick-action" type="button" disabled>
+            <span class="action-icon grid-icon">&#9638;</span><b>DEPLOY</b><small>NEW CONTRACT</small>
+          </button>
+          <button id="prove" class="quick-action" type="button" disabled>
+            <span class="action-icon">&#9678;</span><b>PROVE</b><small>PRIVATE KNOWLEDGE</small>
+          </button>
+        </section>
+
+        <nav class="section-tabs" aria-label="Private proof dashboard sections">
+          <button type="button">ASSETS</button>
+          <button type="button">PROOFS</button>
+          <button class="active" type="button">TRANSACTIONS</button>
+          <button type="button">APPS</button>
+        </nav>
+
+        <section class="proof-console" aria-labelledby="proof-title">
+          <div class="console-heading">
+            <div>
+              <span class="micro-label">PRIVATE CIRCUIT</span>
+              <h1 id="proof-title">Prove private knowledge</h1>
+            </div>
+            <span class="privacy-chip">INPUT STAYS LOCAL</span>
+          </div>
+          <div class="console-grid">
+            <label class="secret-control" for="secret">
+              <span>ACCESS PHRASE <em>NEVER PERSISTED</em></span>
+              <input id="secret" type="password" autocomplete="off" spellcheck="false" placeholder="Enter the private phrase" disabled />
+            </label>
+            <div class="contract-control">
+              <span>CONTRACT ADDRESS</span>
+              <code id="contract-address">Connect a wallet, then deploy to Preprod</code>
+            </div>
+            <div id="status" class="status-line" role="status">Connect 1AM or Lace on Preprod to continue.</div>
+          </div>
+        </section>
+
+        <section class="transactions-panel" aria-labelledby="transactions-title">
+          <div class="transaction-search">
+            <label for="transaction-search" class="sr-only">Search transactions</label>
+            <input id="transaction-search" type="search" placeholder="Search by hash, method, contract..." />
+          </div>
+          <div class="transaction-head"><span id="transactions-title">TRANSACTION</span><span>METHOD</span><span>STATUS</span></div>
+
+          <article id="deployment-transaction" class="transaction-row" data-search="smart contract deployment preprod 6581c87b c456ed849">
+            <span class="chevron">&#8250;</span>
+            <span class="transaction-glyph">&#8942;</span>
+            <div class="transaction-data">
+              <time>2026/07/20</time>
+              <a id="deployment-transaction-link" href="https://explorer.1am.xyz/tx/6581c87b19eb8ef8357b6d0ad7a96e0981d0f5051f1bbdb1cd4649f056da3b4f?network=preprod" target="_blank" rel="noreferrer">6581c87b...56da3b4f</a>
+              <span>copy</span>
+            </div>
+            <div class="method-data"><b>Smart contract deployment</b><span>PRIVATE_PROOF_DEPLOY &middot; localhost:5173</span></div>
+            <span class="tx-status confirmed"><i></i> CONFIRMED</span>
+          </article>
+
+          <article id="proof-transaction" class="transaction-row" data-search="private proof circuit proveprivateknowledge" hidden>
+            <span class="chevron">&#8250;</span>
+            <span class="transaction-glyph">&#8942;</span>
+            <div class="transaction-data">
+              <time id="proof-transaction-time">JUST NOW</time>
+              <a id="proof-transaction-link" href="#top">Proof transaction</a>
+              <span>copy</span>
+            </div>
+            <div class="method-data"><b>Private knowledge proof</b><span>PROVE_PRIVATE_KNOWLEDGE &middot; localhost:5173</span></div>
+            <span id="proof-transaction-status" class="tx-status pending"><i></i> SUBMITTED</span>
+          </article>
+
+          <p id="receipt-result" class="receipt-line">Public receipt: latestProofAccepted = false &middot; successfulProofs = 0</p>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="./src/bootstrap.js"></script>
   </body>
 </html>

@@ -147,50 +147,9 @@ const syncInterval = setInterval(() => {
   process.stdout.write(`\r  ⏳ Still syncing... (${elapsed}s elapsed)   `);
 }, 5000);
 
-// TEMPORARY DEBUG: inspect wallet state while initial sync is running.
-const debugSub = walletCtx.wallet.state().subscribe({
-  next: (s: any) => {
-    console.log('\n\n[WALLET DEBUG]');
-    console.dir(
-      {
-        isSynced: s.isSynced,
-        progress: s.progress,
-        syncProgress: s.syncProgress,
-
-        shielded: s.shielded
-          ? {
-              isSynced: s.shielded.isSynced,
-              progress: s.shielded.progress,
-            }
-          : undefined,
-
-        unshielded: s.unshielded
-          ? {
-              isSynced: s.unshielded.isSynced,
-              progress: s.unshielded.progress,
-              availableCoins: s.unshielded.availableCoins?.length,
-            }
-          : undefined,
-
-        dust: s.dust
-          ? {
-              isSynced: s.dust.isSynced,
-              progress: s.dust.progress,
-            }
-          : undefined,
-      },
-      { depth: 5 },
-    );
-  },
-
-  error: (err: any) => {
-    console.error('\n[WALLET DEBUG ERROR]', err);
-  },
-});
 
 const state = await walletCtx.wallet.waitForSyncedState();
 
-debugSub.unsubscribe();
 clearInterval(syncInterval);
 
 process.stdout.write(

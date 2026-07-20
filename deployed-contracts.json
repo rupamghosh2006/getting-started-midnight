@@ -1,4 +1,10 @@
 {
   "contracts": {
+    "preprod": {
+      "address": "c456ed849e1e2be80e8e571ec1a8830ef98d87c324659a0ba44aded5361dbc8d",
+      "transactionId": "6581c87b19eb8ef8357b6d0ad7a96e0981d0f5051f1bbdb1cd4649f056da3b4f",
+      "blockHeight": 1740983,
+      "verificationUrl": "https://explorer.1am.xyz/tx/6581c87b19eb8ef8357b6d0ad7a96e0981d0f5051f1bbdb1cd4649f056da3b4f?network=preprod"
+    }
   }
 }

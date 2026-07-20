@@ -5,9 +5,31 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { getDeployment, NETWORK_CONFIGS } from './network';
 
+type PublicPreprodDeployment = {
+  address: string;
+  transactionId?: string;
+  verificationUrl?: string;
+};
+
+function getPublicPreprodDeployment(): PublicPreprodDeployment | null {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const registry = path.resolve(here, '..', 'deployed-contracts.json');
+  try {
+    const data = JSON.parse(fs.readFileSync(registry, 'utf8')) as {
+      contracts?: { preprod?: PublicPreprodDeployment };
+    };
+    if (data.contracts?.preprod?.address) return data.contracts.preprod;
+  } catch {
+    // Fall through to the local developer state for legacy CLI deployments.
+  }
+
+  const local = getDeployment('preprod');
+  return local ? { address: local.address } : null;
+}
+
 async function main(): Promise<void> {
-  const deployment = getDeployment('preprod');
-  if (!deployment) throw new Error('No Preprod deployment is recorded. Deploy with `npm run deploy -- --network preprod` first.');
+  const deployment = getPublicPreprodDeployment();
+  if (!deployment) throw new Error('No Preprod deployment is recorded. Deploy through the 1AM/Lace web app first.');
   if (!/^[0-9a-f]{32,}$/i.test(deployment.address)) throw new Error('Recorded Preprod contract address is malformed.');
 
   const config = NETWORK_CONFIGS.preprod;
@@ -23,7 +45,8 @@ async function main(): Promise<void> {
 
   console.log('Preprod contract verified through the public indexer');
   console.log(`Address: ${deployment.address}`);
-  console.log(`Explorer: https://preprod.midnightexplorer.com/search?q=${deployment.address}`);
+  if (deployment.transactionId) console.log(`Transaction: ${deployment.transactionId}`);
+  console.log(`Explorer: ${deployment.verificationUrl ?? `https://preprod.midnightexplorer.com/search?q=${deployment.address}`}`);
   console.log(`Latest proof accepted: ${ledger.latestProofAccepted}`);
   console.log(`Successful proof counter: ${String(ledger.successfulProofs)}`);
 }

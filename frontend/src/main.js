@@ -1,71 +1,82 @@
-// Lace injects this connector asynchronously. We deliberately keep the
-// private phrase in a local variable only; do not add analytics, localStorage,
-// logs, or a backend round-trip to this flow.
-const NETWORK = 'preprod';
-const CONTRACT_ADDRESS = globalThis.__MIDNIGHT_CONTRACT_ADDRESS__ || '';
-let connector;
-let wallet;
+import { connectWallet, deployPrivateProof, provePrivateKnowledge } from './midnight-client.js';
+
+const VERIFIED_DEPLOYMENT = {
+  address: 'c456ed849e1e2be80e8e571ec1a8830ef98d87c324659a0ba44aded5361dbc8d',
+  txId: '6581c87b19eb8ef8357b6d0ad7a96e0981d0f5051f1bbdb1cd4649f056da3b4f',
+};
+
+// The phrase stays in a local function variable only. Do not add analytics,
+// localStorage, logs, or a backend round-trip to this flow.
+let session;
+let contractAddress = localStorage.getItem('midnight-private-proof:preprod') || VERIFIED_DEPLOYMENT.address;
+let deploymentTxId = localStorage.getItem('midnight-private-proof:deployment-tx') || VERIFIED_DEPLOYMENT.txId;
 
 const $ = (id) => document.getElementById(id);
 const connectButton = $('connect');
 const disconnectButton = $('disconnect');
 const proveButton = $('prove');
+const deployButton = $('deploy');
 const secretInput = $('secret');
+const explorerUrl = (txId) => `https://explorer.1am.xyz/tx/${txId}?network=preprod`;
+const shorten = (value, start = 9, end = 8) => value && value.length > start + end ? `${value.slice(0, start)}...${value.slice(-end)}` : value;
 
 function showStatus(message, isError = false) {
   $('status').textContent = message;
   $('status').classList.toggle('error', isError);
 }
 
+function updateContractUI() {
+  $('contract-address').textContent = contractAddress || 'Connect a wallet, then deploy to Preprod';
+  $('contract-address-short').textContent = contractAddress ? shorten(contractAddress, 12, 10) : 'No contract selected';
+  if (deploymentTxId) {
+    const link = $('deployment-transaction-link');
+    link.href = explorerUrl(deploymentTxId);
+    link.textContent = shorten(deploymentTxId, 8, 8);
+  }
+}
+
 function setConnected(address) {
-  $('connection-badge').textContent = 'Connected';
+  $('connection-badge').textContent = 'CONNECTED';
   $('connection-badge').classList.add('green');
-  $('wallet-address').textContent = address;
+  $('wallet-state').textContent = 'ON';
+  $('wallet-address').textContent = shorten(address, 13, 9);
+  $('wallet-address').title = address;
+  $('wallet-visibility').textContent = 'LIVE \u25c9';
   connectButton.disabled = true;
   disconnectButton.disabled = false;
   secretInput.disabled = false;
   proveButton.disabled = false;
-}
-
-async function waitForLace(timeoutMs = 6000) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    const injected = globalThis.midnight?.mnLace;
-    if (injected) return injected;
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  throw new Error('Lace with Midnight support was not detected. Install/unlock Lace and refresh this page.');
+  deployButton.disabled = false;
+  document.querySelectorAll('[data-action="connect"]').forEach((button) => { button.disabled = true; });
 }
 
 async function connect() {
   try {
-    showStatus('Waiting for Lace…');
-    connector = await waitForLace();
-    // This is Lace's DApp Connector API. It opens the user approval prompt.
-    wallet = await connector.connect(NETWORK);
-    const addresses = await wallet.getShieldedAddresses();
-    const address = Array.isArray(addresses) ? addresses[0]?.shieldedAddress : addresses.shieldedAddress;
-    if (!address) throw new Error('Lace connected but did not return a shielded address.');
-    setConnected(address);
-    showStatus('Wallet connected. Your proof input will remain local to the proving flow.');
+    showStatus('Waiting for 1AM or Lace wallet permission...');
+    session = await connectWallet();
+    setConnected(session.address);
+    showStatus(`${session.name} connected. Your proof input remains local to the proving flow.`);
   } catch (error) {
-    wallet = undefined;
+    session = undefined;
     showStatus(error instanceof Error ? error.message : String(error), true);
   }
 }
 
 async function disconnect() {
-  // The connector API is permission-oriented. Some Lace builds expose
-  // disconnect(), while others revoke access when the page session ends.
-  await connector?.disconnect?.();
-  wallet = undefined;
-  $('connection-badge').textContent = 'Disconnected';
+  await session?.api?.disconnect?.();
+  session = undefined;
+  $('connection-badge').textContent = 'DISCONNECTED';
   $('connection-badge').classList.remove('green');
+  $('wallet-state').textContent = 'OFF';
   $('wallet-address').textContent = 'No wallet connected';
+  $('wallet-address').removeAttribute('title');
+  $('wallet-visibility').textContent = 'HIDE \u25c9';
   connectButton.disabled = false;
   disconnectButton.disabled = true;
   secretInput.disabled = true;
   proveButton.disabled = true;
+  deployButton.disabled = true;
+  document.querySelectorAll('[data-action="connect"]').forEach((button) => { button.disabled = false; });
   secretInput.value = '';
   showStatus('Wallet disconnected and private input cleared.');
 }
@@ -73,33 +84,62 @@ async function disconnect() {
 async function prove() {
   const accessPhrase = secretInput.value;
   if (!accessPhrase) return showStatus('Enter the private phrase first.', true);
-  if (!CONTRACT_ADDRESS) return showStatus('No Preprod contract address configured. Deploy first, then set __MIDNIGHT_CONTRACT_ADDRESS__.', true);
+  if (!contractAddress) return showStatus('Deploy the Preprod contract first.', true);
 
   try {
     proveButton.disabled = true;
-    showStatus('Creating ZK proof in the Lace-provided proving flow…');
-
-    // The application-specific client is supplied by the production bundle.
-    // It must call the compiled `provePrivateKnowledge` circuit and use this
-    // connected Lace API for balancing and submission. Keeping it separate
-    // prevents this static UI from ever receiving key material.
-    const client = globalThis.midnightPrivateProofClient;
-    if (!client?.provePrivateKnowledge) {
-      throw new Error('Contract client is not bundled. Run the frontend build after compiling and deploying the contract.');
-    }
-    const receipt = await client.provePrivateKnowledge({ wallet, contractAddress: CONTRACT_ADDRESS, accessPhrase });
-    $('receipt-result').textContent = `Accepted — tx ${receipt.txId ?? 'submitted'}`;
-    showStatus('Circuit call accepted. The phrase was not added to public state.');
+    showStatus('Creating a zero-knowledge proof in the wallet-provided proving flow...');
+    if (!session) throw new Error('Connect a wallet first.');
+    const receipt = await provePrivateKnowledge(session, contractAddress, accessPhrase);
+    const txId = receipt.txId ?? 'submitted';
+    $('receipt-result').textContent = `Private proof submitted: ${txId}. The phrase is not in public state.`;
+    $('proof-transaction').hidden = false;
+    $('proof-transaction-link').textContent = shorten(txId, 8, 8);
+    $('proof-transaction-link').href = txId === 'submitted' ? '#top' : explorerUrl(txId);
+    $('proof-transaction-time').textContent = 'JUST NOW';
+    $('proof-transaction-status').className = 'tx-status pending';
+    $('proof-transaction-status').innerHTML = '<i></i> SUBMITTED';
+    $('proof-count-note').textContent = 'Proof transaction submitted; awaiting indexing';
+    showStatus('Circuit call submitted. After indexing, the public receipt changes without revealing the phrase.');
   } catch (error) {
     showStatus(error instanceof Error ? error.message : String(error), true);
   } finally {
-    // Clear the DOM and release our only application reference immediately.
     secretInput.value = '';
     proveButton.disabled = false;
   }
 }
 
-$('contract-address').textContent = CONTRACT_ADDRESS || 'Deploy to Preprod, then configure the address';
+async function deploy() {
+  if (!session) return showStatus('Connect a wallet first.', true);
+  try {
+    deployButton.disabled = true;
+    showStatus('Building, proving, and submitting the deployment through your wallet...');
+    const receipt = await deployPrivateProof(session);
+    contractAddress = receipt.contractAddress;
+    deploymentTxId = receipt.txId;
+    localStorage.setItem('midnight-private-proof:preprod', contractAddress);
+    localStorage.setItem('midnight-private-proof:deployment-tx', deploymentTxId);
+    updateContractUI();
+    $('receipt-result').textContent = `Deployment submitted: ${deploymentTxId}`;
+    showStatus('Deployment submitted. Wait for Preprod indexing, then submit a private proof.');
+  } catch (error) {
+    showStatus(error instanceof Error ? error.message : String(error), true);
+  } finally {
+    deployButton.disabled = false;
+  }
+}
+
+function filterTransactions(event) {
+  const query = event.target.value.trim().toLowerCase();
+  document.querySelectorAll('.transaction-row').forEach((row) => {
+    row.hidden = Boolean(query) && !row.dataset.search.includes(query);
+  });
+}
+
+updateContractUI();
 connectButton.addEventListener('click', connect);
 disconnectButton.addEventListener('click', disconnect);
 proveButton.addEventListener('click', prove);
+deployButton.addEventListener('click', deploy);
+$('transaction-search').addEventListener('input', filterTransactions);
+document.querySelectorAll('[data-action="connect"]').forEach((button) => button.addEventListener('click', connect));
