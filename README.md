@@ -6,7 +6,7 @@
 
 - Live demo: [https://1am-private-proof.vercel.app](https://1am-private-proof.vercel.app)
 - Preprod deployment: [`c456ed849e1e2be80e8e571ec1a8830ef98d87c324659a0ba44aded5361dbc8d`](https://explorer.1am.xyz/tx/6581c87b19eb8ef8357b6d0ad7a96e0981d0f5051f1bbdb1cd4649f056da3b4f?network=preprod)
-- Demo video: [ ]()
+- Demo video: [Watch on YouTube](https://youtu.be/WBN1WQ87dzY)
 
 ## What it does
 
@@ -113,4 +113,4 @@ deployed-contracts.json          Recorded deployment address and transaction
 
 ## Demo video
 
-[ ]()
+[Watch on YouTube](https://youtu.be/WBN1WQ87dzY)
