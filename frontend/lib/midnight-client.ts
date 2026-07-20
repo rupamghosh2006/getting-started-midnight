@@ -15,6 +15,7 @@ export interface WalletSession {
   api: any;
   name: string;
   address: string;
+  legacyLace?: boolean;
   providers: {
     zkConfigProvider: any;
     publicDataProvider: any;
@@ -88,21 +89,42 @@ function compiledContract(): any {
 }
 
 function connectorCandidate(...candidates: any[]) {
-  return candidates.find((candidate) => typeof candidate?.connect === 'function');
+  return candidates.find(
+    (candidate) => typeof candidate?.connect === 'function' || typeof candidate?.enable === 'function',
+  );
 }
 
 function laceConnector() {
+  // The current Lace extension injects its Midnight connector here and uses
+  // enable(), whereas 1AM uses connect('preprod').
+  const currentLace = (globalThis as any).lace?.midnight;
+  if (typeof currentLace?.enable === 'function') {
+    return { connector: currentLace, mode: 'enable' as const };
+  }
+
   const namedConnector = connectorCandidate(
     (globalThis as any).midnight?.mnLace,
     (globalThis as any).midnight?.lace,
     (globalThis as any).mnLace,
     (globalThis as any).lace,
   );
-  if (namedConnector) return namedConnector;
+  if (namedConnector) {
+    return {
+      connector: namedConnector,
+      mode: typeof namedConnector.connect === 'function' ? 'connect' as const : 'enable' as const,
+    };
+  }
 
   const anonymousConnectors = Object.entries((globalThis as any).midnight ?? {})
-    .filter(([key, candidate]) => key !== '1am' && typeof (candidate as any)?.connect === 'function');
-  return anonymousConnectors.length === 1 ? anonymousConnectors[0][1] : undefined;
+    .filter(([key, candidate]) => key !== '1am' && (
+      typeof (candidate as any)?.connect === 'function' || typeof (candidate as any)?.enable === 'function'
+    ));
+  return anonymousConnectors.length === 1
+    ? {
+      connector: anonymousConnectors[0][1],
+      mode: typeof (anonymousConnectors[0][1] as any).connect === 'function' ? 'connect' as const : 'enable' as const,
+    }
+    : undefined;
 }
 
 function detectedMidnightProviders(): string {
@@ -117,10 +139,10 @@ async function resolveWallet(preferred: string = 'auto') {
   while (Date.now() - started < 6000) {
     const oneAm = (globalThis as any).midnight?.['1am'];
     const lace = laceConnector();
-    if (preferred === '1am' && oneAm) return { connector: oneAm, name: '1AM' };
-    if (preferred === 'lace' && lace) return { connector: lace, name: 'Lace' };
-    if (preferred === 'auto' && oneAm) return { connector: oneAm, name: '1AM' };
-    if (preferred === 'auto' && lace) return { connector: lace, name: 'Lace' };
+    if (preferred === '1am' && oneAm) return { connector: oneAm, name: '1AM', mode: 'connect' as const };
+    if (preferred === 'lace' && lace) return { ...lace, name: 'Lace' };
+    if (preferred === 'auto' && oneAm) return { connector: oneAm, name: '1AM', mode: 'connect' as const };
+    if (preferred === 'auto' && lace) return { ...lace, name: 'Lace' };
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   const walletName = preferred === 'lace' ? 'Lace' : preferred === '1am' ? '1AM' : '1AM or Lace';
@@ -132,7 +154,22 @@ async function resolveWallet(preferred: string = 'auto') {
 }
 
 export async function connectWallet(preferred: string = 'auto'): Promise<WalletSession> {
-  const { connector, name } = await resolveWallet(preferred);
+  const { connector, name, mode } = await resolveWallet(preferred);
+  if (name === 'Lace' && mode === 'enable') {
+    const api = await connector.enable();
+    const state = await api.state?.();
+    const addresses = !state?.address && api.getUsedAddresses ? await api.getUsedAddresses() : [];
+    const address = state?.address ?? addresses?.[0] ?? 'Lace connected';
+
+    return {
+      api: { ...api, disconnect: () => connector.disconnect?.() },
+      name,
+      address,
+      legacyLace: true,
+      providers: {} as any,
+    };
+  }
+
   const api = await connector.connect('preprod');
   const [config, shielded, unshielded] = await Promise.all([
     api.getConfiguration(),

@@ -84,7 +84,9 @@ export default function DApp() {
       setState((s) => ({
         ...s,
         session,
-        status: `${session.name} connected. Your proof input remains local to the proving flow.`,
+        status: session.legacyLace
+          ? 'Lace connected on Preprod. Disconnect is available from this page.'
+          : `${session.name} connected. Your proof input remains local to the proving flow.`,
         isError: false,
       }));
     } catch (error) {
@@ -111,6 +113,10 @@ export default function DApp() {
   const handleDeploy = useCallback(async () => {
     if (!state.session) {
       showStatus('Connect a wallet first.', true);
+      return;
+    }
+    if (state.session.legacyLace) {
+      showStatus('Lace is connected. This existing v4 deployment flow is provided by 1AM; reconnect with 1AM to deploy.', true);
       return;
     }
     try {
@@ -149,6 +155,10 @@ export default function DApp() {
     }
     if (!state.contractAddress) {
       showStatus('Deploy the Preprod contract first.', true);
+      return;
+    }
+    if (state.session?.legacyLace) {
+      showStatus('Lace is connected. This existing v4 circuit flow is provided by 1AM; reconnect with 1AM to submit the proof.', true);
       return;
     }
     try {
