@@ -16,6 +16,20 @@ A decentralized message board built on Midnight Network — users can store and 
 
 ## Product Idea
 
+### Lace frontend and private proof
+
+The static UI in `frontend/` detects `window.midnight.mnLace`, connects to Preprod with `connector.connect('preprod')`, exposes Disconnect, and clears the private form value after every submission attempt or disconnect.
+
+`provePrivateKnowledge(accessPhrase: Bytes<21>)` proves private knowledge without placing that phrase in public ledger state. The observable receipt is only `latestProofAccepted` and the `successfulProofs` counter. The phrase predicate is a demo; replace it with a credential or commitment predicate before production use.
+
+```sh
+npm run compile
+npm run deploy -- --network preprod
+npm run verify:preprod
+```
+
+`verify:preprod` queries the public Preprod indexer and prints the address and Explorer URL. A funded Preprod wallet is required to deploy; this project deliberately does not invent an address.
+
 A decentralized message board where anyone can store a public message on the Midnight blockchain. Each update generates a zero-knowledge proof that the transaction is valid, while the message itself remains visible to all — perfect for verifiable public announcements, attestations, or simple social applications that benefit from Midnight's unique balance of transparency and privacy.
 
 ## Quick start

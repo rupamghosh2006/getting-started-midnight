@@ -1,12 +1,4 @@
 {
   "contracts": {
-    "undeployed": {
-      "address": "a08f8441cc80a487a56b40b658bfd6b518a0035ac8cf9deeae13bb09b77d9653",
-      "deployedAt": "2026-07-10T16:48:49.891Z"
-    },
-    "preview": {
-      "address": "cab5f6a2807498bc2a0ddce4bf6b6fbbd49eb79e5469232865013972bca8491f",
-      "deployedAt": "2026-07-10T18:27:44.949Z"
-    }
   }
 }

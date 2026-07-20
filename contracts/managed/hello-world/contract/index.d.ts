@@ -4,25 +4,26 @@ export type Witnesses<PS> = {
 }
 
 export type ImpureCircuits<PS> = {
-  storeMessage(context: __compactRuntime.CircuitContext<PS>,
-               customMessage_0: string): __compactRuntime.CircuitResults<PS, []>;
+  provePrivateKnowledge(context: __compactRuntime.CircuitContext<PS>,
+                        accessPhrase_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type ProvableCircuits<PS> = {
-  storeMessage(context: __compactRuntime.CircuitContext<PS>,
-               customMessage_0: string): __compactRuntime.CircuitResults<PS, []>;
+  provePrivateKnowledge(context: __compactRuntime.CircuitContext<PS>,
+                        accessPhrase_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type PureCircuits = {
 }
 
 export type Circuits<PS> = {
-  storeMessage(context: __compactRuntime.CircuitContext<PS>,
-               customMessage_0: string): __compactRuntime.CircuitResults<PS, []>;
+  provePrivateKnowledge(context: __compactRuntime.CircuitContext<PS>,
+                        accessPhrase_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type Ledger = {
-  readonly message: string;
+  readonly latestProofAccepted: boolean;
+  readonly successfulProofs: bigint;
 }
 
 export type ContractReferenceLocations = any;

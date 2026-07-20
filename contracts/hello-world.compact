@@ -2,11 +2,22 @@ pragma language_version >= 0.23;
 
 import CompactStandardLibrary;
 
-// Public ledger state - visible on blockchain
-export ledger message: Opaque<"string">;
+// This is the complete public receipt. It deliberately contains no secret,
+// message, identity, hash, or other value that can be used to recover a proof
+// input.
+export ledger latestProofAccepted: Boolean;
+export ledger successfulProofs: Counter;
 
-// Circuit to store a message on the blockchain
-// The message will be publicly visible
-export circuit storeMessage(customMessage: Opaque<"string">): [] {
-    message = disclose(customMessage);
+// Proves knowledge of the private access phrase. `accessPhrase` is a private
+// circuit input: the network validates the proof, but it is never written to
+// public ledger state. The observable result is only the accepted flag and
+// monotonically increasing receipt counter.
+//
+// Replace the demo phrase with a commitment / credential predicate before a
+// production deployment; it is intentionally simple so the privacy boundary
+// is easy to audit in this example.
+export circuit provePrivateKnowledge(accessPhrase: Bytes<21>): [] {
+    assert(disclose(accessPhrase == "MIDNIGHT-PRIVATE-DEMO"), "Proof not accepted");
+    latestProofAccepted = disclose(true);
+    successfulProofs.increment(1);
 }

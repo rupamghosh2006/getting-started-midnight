@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Midnight Private Proof</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <p class="eyebrow">MIDNIGHT · PREPROD</p>
+      <h1>Prove it. Don’t reveal it.</h1>
+      <p class="lead">Submit a zero-knowledge proof of private knowledge. The phrase stays in this browser; the chain records only an accepted-proof receipt.</p>
+
+      <section class="card" aria-labelledby="wallet-title">
+        <div class="row"><h2 id="wallet-title">Lace wallet</h2><span id="connection-badge" class="badge">Disconnected</span></div>
+        <p id="wallet-address" class="mono">No wallet connected</p>
+        <div class="actions">
+          <button id="connect" type="button">Connect Lace</button>
+          <button id="disconnect" type="button" class="secondary" disabled>Disconnect</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="proof-title">
+        <div class="row"><h2 id="proof-title">Private knowledge proof</h2><span class="badge green">Input remains private</span></div>
+        <label for="secret">Access phrase <span>(never persisted or rendered after submission)</span></label>
+        <input id="secret" type="password" autocomplete="off" spellcheck="false" placeholder="Enter private phrase" disabled />
+        <button id="prove" type="button" disabled>Generate proof &amp; call circuit</button>
+        <p id="status" role="status">Connect Lace on Preprod to continue.</p>
+      </section>
+
+      <section class="card receipt" aria-labelledby="receipt-title">
+        <h2 id="receipt-title">Public receipt</h2>
+        <dl><div><dt>Contract</dt><dd id="contract-address" class="mono">Set VITE_CONTRACT_ADDRESS before release</dd></div><div><dt>On-chain result</dt><dd id="receipt-result">No proof submitted</dd></div><div><dt>Privacy boundary</dt><dd>Only <code>latestProofAccepted</code> and <code>successfulProofs</code> are public.</dd></div></dl>
+      </section>
+    </main>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

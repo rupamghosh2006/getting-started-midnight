@@ -4,15 +4,15 @@
   "runtime-version": "0.16.0",
   "circuits": [
     {
-      "name": "storeMessage",
+      "name": "provePrivateKnowledge",
       "pure": false,
       "proof": true,
       "arguments": [
         {
-          "name": "customMessage",
+          "name": "accessPhrase",
           "type": {
-            "type-name": "Opaque",
-            "tsType": "string"
+            "type-name": "Bytes",
+            "length": 21
           }
         }
       ],
@@ -29,14 +29,19 @@
   ],
   "ledger": [
     {
-      "name": "message",
+      "name": "latestProofAccepted",
       "index": 0,
       "exported": true,
       "storage": "Cell",
       "type": {
-        "type-name": "Opaque",
-        "tsType": "string"
+        "type-name": "Boolean"
       }
+    },
+    {
+      "name": "successfulProofs",
+      "index": 1,
+      "exported": true,
+      "storage": "Counter"
     }
   ]
 }
