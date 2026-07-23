@@ -2,11 +2,11 @@
   "name": "getting-started-midnight",
   "version": "1.0.0",
   "type": "module",
-  "description": "A decentralized message board built on Midnight Network demonstrating zero-knowledge smart contracts",
+  "description": "A Lace-connected Midnight DApp for commitment-based private knowledge proofs",
   "author": "rupamghosh2006",
   "license": "MIT",
   "scripts": {
-    "compile": "compact compile contracts/hello-world.compact contracts/managed/hello-world",
+    "compile": "node scripts/compile-contract.mjs",
     "build": "npx tsc --noEmit || true",
     "setup": "npx tsx src/setup.ts",
     "deploy": "npx tsx src/deploy.ts",
@@ -15,8 +15,8 @@
     "network": "npx tsx src/network.ts",
     "verify:preprod": "npx tsx src/verify-preprod.ts",
     "sync:zk": "node scripts/sync-zk-assets.mjs",
-    "web:dev": "vite --config frontend/vite.config.js",
-    "web:build": "npm run compile && npm run sync:zk && vite build --config frontend/vite.config.js",
+    "web:dev": "npm --prefix frontend run dev",
+    "web:build": "npm run compile && npm run sync:zk && npm --prefix frontend run build",
     "proof-server:start": "docker compose up -d",
     "proof-server:stop": "docker compose down",
     "clean": "rm -rf contracts/managed .midnight-state.json .midnight-wallet-state",
@@ -25,7 +25,6 @@
   },
   "dependencies": {
     "@midnight-ntwrk/compact-js": "2.5.0",
-    "rxjs": "^7.8.2",
     "@midnight-ntwrk/compact-runtime": "0.16.0",
     "@midnight-ntwrk/ledger-v8": "8.1.0",
     "@midnight-ntwrk/midnight-js-contracts": "4.0.4",
@@ -44,19 +43,22 @@
     "@midnight-ntwrk/wallet-sdk-unshielded-wallet": "2.1.0",
     "buffer": "^6.0.3",
     "process": "^0.11.10",
+    "rxjs": "^7.8.2",
     "ws": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.3",
-    "vite": "^7.1.7",
-    "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.5.0"
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=22.0.0"
   },
-  "keywords": ["midnight", "blockchain", "zero-knowledge", "privacy"]
+  "keywords": [
+    "midnight",
+    "blockchain",
+    "zero-knowledge",
+    "privacy"
+  ]
 }

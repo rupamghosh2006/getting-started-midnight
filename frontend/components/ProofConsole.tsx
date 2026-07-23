@@ -35,14 +35,14 @@ export default function ProofConsole({
       </div>
       <form className="console-grid" onSubmit={handleSubmit}>
         <label className="secret-control" htmlFor="secret">
-          <span>ACCESS PHRASE <em>NEVER PERSISTED</em></span>
+          <span>PRIVATE PHRASE <em>NEVER SENT ON-CHAIN</em></span>
           <input
             id="secret"
             type="password"
             name="secret"
             autoComplete="off"
             spellCheck={false}
-            placeholder="Enter the private phrase"
+            placeholder="Enter a unique phrase (12+ characters)"
             disabled={disabled}
             value={secretPhrase}
             onChange={(e) => onSecretChange(e.target.value)}

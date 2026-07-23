@@ -1,116 +1,77 @@
 # 1AM Private Proof
 
-**1AM Private Proof** is a Midnight DApp that lets a user prove knowledge of a private access phrase without publishing the phrase, their identity, or a recoverable secret on-chain. The browser UI connects to **Lace on Midnight Preprod**, supports a wallet-provided circuit submission flow, and shows only a public proof receipt.
+1AM Private Proof is a Midnight Preprod DApp where a user proves knowledge of a private phrase without placing that phrase—or its random salt—on-chain. It connects to the Lace Midnight wallet, deploys a Compact contract, and submits the `provePrivateKnowledge` circuit through the connected wallet.
 
-## Links
+## What is private and what is public
 
-- Live demo: [https://1am-private-proof.vercel.app](https://1am-private-proof.vercel.app)
-- Preprod deployment: [`c456ed849e1e2be80e8e571ec1a8830ef98d87c324659a0ba44aded5361dbc8d`](https://explorer.1am.xyz/tx/6581c87b19eb8ef8357b6d0ad7a96e0981d0f5051f1bbdb1cd4649f056da3b4f?network=preprod)
-- Demo video: [Watch on YouTube](https://youtu.be/WBN1WQ87dzY)
+At deployment, the Compact constructor receives a private 32-byte secret derived in the browser from the phrase, plus a random 32-byte salt stored only in that browser. It stores only `persistentCommit(secret, salt)` as an immutable, sealed commitment. Later, the proof circuit recomputes that commitment privately and accepts only an equal value.
 
-## What it does
-
-1. Connect a Lace wallet (or 1AM wallet) to Midnight Preprod.
-2. Enter the private proof input in the DApp.
-3. Call the `provePrivateKnowledge` Compact circuit.
-4. Receive an on-chain confirmation while the private input remains outside public ledger state.
-5. Disconnect the wallet; the app clears the private form input from the UI.
-
-## Privacy claim
-
-The circuit accepts a private `Bytes<21>` input and verifies it against the proof predicate. The secret itself is **not stored in public ledger state** and is not shown in the transaction receipt.
-
-The only public outputs are:
-
-- `latestProofAccepted` — whether the latest proof was accepted.
-- `successfulProofs` — a counter of accepted proofs.
-
-This makes the privacy behavior observable: anyone can verify that a valid proof was accepted, but they cannot see the access phrase supplied to produce it. The current predicate is intentionally a demonstration; a production system should use a credential or commitment-based predicate.
-
-## Preprod contract
-
-| Item | Value |
+| Browser-local data | Public, verifiable data |
 | --- | --- |
-| Network | Midnight Preprod |
-| Contract address | `c456ed849e1e2be80e8e571ec1a8830ef98d87c324659a0ba44aded5361dbc8d` |
-| Deployment transaction | [`6581c87b…056da3b4f`](https://explorer.1am.xyz/tx/6581c87b19eb8ef8357b6d0ad7a96e0981d0f5051f1bbdb1cd4649f056da3b4f?network=preprod) |
+| phrase-derived secret | immutable salted commitment |
+| random 32-byte salt | latest accepted flag |
+| wallet session state | successful-proof counter |
 
-Verify the recorded deployment and current public receipt with:
+The observable privacy behavior is a changed public counter after a valid circuit call, without exposing the phrase or salt. `persistentCommit` is deliberately used rather than a hard-coded phrase predicate, so the contract proves knowledge of deployment-specific private material.
 
-```bash
-npm run verify:preprod
+## Contract
+
+The source is [contracts/hello-world.compact](contracts/hello-world.compact). Its deployed public API is:
+
+```compact
+constructor(secret: Bytes<32>, salt: Bytes<32>)
+provePrivateKnowledge(secret: Bytes<32>, salt: Bytes<32>)
 ```
 
-## Lace wallet flow
-
-The frontend detects Lace's Midnight connector and requests access through the connector API. When connected, the dashboard displays the wallet state and enables proof actions. The Disconnect control clears the local session and private input from the application UI.
-
-For best results, install Lace with Midnight support, switch it to **Preprod**, allow the extension access to the demo site, then reload the page.
+`secretCommitment` is a sealed ledger field and cannot be changed after deployment. `latestProofAccepted` and `successfulProofs` are the intentional public receipt.
 
 ## Run locally
 
-### Prerequisites
-
-- Node.js 22+
-- Lace wallet with Midnight Preprod enabled (for browser wallet testing)
-- Docker with Compose v2 (for the local contract/proof-server workflow)
-
-### Frontend
+Midnight development is supported on Linux and macOS. On Windows, use WSL: the Windows command named `compact.exe` performs NTFS compression and is **not** the Midnight Compact compiler.
 
 ```bash
-cd frontend
-npm install
-npm run dev
+# In WSL/Linux after installing the official Midnight Compact toolchain
+compact update 0.31.1
+npm ci
+npm run compile
+npm run sync:zk
+npm --prefix frontend ci
+npm --prefix frontend run dev
 ```
 
-Open the local URL printed by Vite, then connect Lace and choose the Preprod flow.
+Open the local URL, select **Lace**, ensure Lace is set to **Midnight Preprod**, enter a unique phrase, and choose **Deploy**. The browser clears the phrase after deployment and retains only the salt in browser-local storage for subsequent proof calls.
 
-### Contract tooling
+For Lace, choose the local proof server in Lace's Midnight settings when testing locally. The DApp uses Lace's enabled wallet API for wallet keys, balancing, proving, and submission; it does not silently fall back to a different wallet for circuit calls.
 
-From the repository root:
+## Deploy the frontend and contract
+
+Vercel runs `frontend/vercel-build.sh`. That build installs Compact 0.31.1, compiles the contract from source, copies the generated ZK artifacts, then builds the Next.js frontend. This prevents stale generated bindings or proving keys from being deployed.
+
+After deploying the contract with Lace on Preprod:
+
+1. Copy the contract address and deployment transaction ID from the UI.
+2. Add them to Vercel as `NEXT_PUBLIC_PRIVATE_PROOF_CONTRACT_ADDRESS` and `NEXT_PUBLIC_PRIVATE_PROOF_DEPLOYMENT_TX_ID`.
+3. Add the same address, transaction ID, and explorer URL under `contracts.preprod` in `deployed-contracts.json`.
+4. Redeploy the frontend and verify with `npm run verify:preprod` from WSL/Linux.
+
+Do not reuse the former Preprod address: it was deployed from an older hard-coded-phrase contract and is not evidence for this commitment-based contract.
+
+## Verification and CI
+
+The GitHub Actions workflow in [.github/workflows/contract.yml](.github/workflows/contract.yml) installs the official Compact toolchain on Linux, compiles the source, verifies required generated files exist, synchronizes proving artifacts, and builds the frontend.
 
 ```bash
-npm install
-npm run compile
 npm run verify:preprod
 ```
 
-To start a local Midnight development environment and deploy locally:
+The verification command queries the official public Preprod indexer and prints the contract receipt. It intentionally fails if `deployed-contracts.json` does not yet contain a current deployment.
 
-```bash
-npm run setup
-```
+## Submission checklist
 
-## Useful scripts
-
-| Command | Purpose |
-| --- | --- |
-| `npm run compile` | Compile the Compact contract and generate proving artifacts. |
-| `npm run verify:preprod` | Read the public Preprod indexer and verify the recorded deployment. |
-| `npm run setup` | Start local services, compile, and deploy to the local devnet. |
-| `npm run test:e2e` | Run the local end-to-end smoke test. |
-| `npm run web:dev` | Start the browser frontend. |
-| `npm run web:build` | Build the frontend with its ZK artifacts. |
-
-## Project structure
-
-```text
-contracts/hello-world.compact    Compact circuit and public receipt ledger
-frontend/                        Browser DApp with Lace/1AM wallet controls
-frontend/lib/midnight-client.ts  Wallet connector and circuit-call integration
-src/verify-preprod.ts            Public Preprod deployment verifier
-deployed-contracts.json          Recorded deployment address and transaction
-```
-
-## Level 2 checklist
-
-- [x] Lace wallet connect and disconnect controls
-- [x] Circuit call from the frontend with result handling
-- [x] Observable privacy behavior: accepted-proof receipt without revealing the private input
-- [x] Contract deployed to Preprod with a verifiable address
-- [x] Public live demo
-- [x] Demo video link
-
-## Demo video
-
-[Watch on YouTube](https://youtu.be/WBN1WQ87dzY)
+- [x] Lace connect and disconnect
+- [x] Lace-backed Compact deployment and circuit call path
+- [x] Commitment-based observable privacy behavior
+- [x] Public source contract and reproducible Linux CI compile
+- [ ] Deploy this revised contract to Preprod and record its new address
+- [ ] Capture a new video: Lace connect, deploy/join, valid proof, and public receipt
+- [ ] Push the revised source and CI result before resubmission

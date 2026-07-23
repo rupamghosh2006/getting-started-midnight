@@ -2,22 +2,29 @@ pragma language_version >= 0.23;
 
 import CompactStandardLibrary;
 
-// This is the complete public receipt. It deliberately contains no secret,
-// message, identity, hash, or other value that can be used to recover a proof
-// input.
+// The only durable secret-related value on-chain is a salted commitment. It is
+// sealed at deployment, so the contract's privacy policy cannot be replaced
+// later by changing the commitment.
+export sealed ledger secretCommitment: Bytes<32>;
 export ledger latestProofAccepted: Boolean;
 export ledger successfulProofs: Counter;
 
-// Proves knowledge of the private access phrase. `accessPhrase` is a private
-// circuit input: the network validates the proof, but it is never written to
-// public ledger state. The observable result is only the accepted flag and
-// monotonically increasing receipt counter.
-//
-// Replace the demo phrase with a commitment / credential predicate before a
-// production deployment; it is intentionally simple so the privacy boundary
-// is easy to audit in this example.
-export circuit provePrivateKnowledge(accessPhrase: Bytes<21>): [] {
-    assert(disclose(accessPhrase == "MIDNIGHT-PRIVATE-DEMO"), "Proof not accepted");
-    latestProofAccepted = disclose(true);
+// `secret` and `salt` are private constructor inputs. `persistentCommit`
+// creates a hiding commitment suitable for public ledger storage: the secret
+// and salt themselves remain in the browser's local private state.
+constructor(secret: Bytes<32>, salt: Bytes<32>) {
+    secretCommitment = persistentCommit<Bytes<32>>(secret, salt);
+    latestProofAccepted = false;
+}
+
+// Anyone can invoke this circuit, but only a caller holding the same private
+// secret and browser-local salt can produce the commitment fixed at deployment.
+// The public receipt reveals only that this equality proof succeeded.
+export circuit provePrivateKnowledge(secret: Bytes<32>, salt: Bytes<32>): [] {
+    assert(
+        persistentCommit<Bytes<32>>(secret, salt) == secretCommitment,
+        "Private knowledge proof not accepted"
+    );
+    latestProofAccepted = true;
     successfulProofs.increment(1);
 }

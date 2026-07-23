@@ -10,10 +10,8 @@ import TransactionsPanel from './TransactionsPanel';
 import { connectWallet, deployPrivateProof, provePrivateKnowledge } from '../lib/midnight-client';
 import type { WalletSession } from '../lib/midnight-client';
 
-const VERIFIED_DEPLOYMENT = {
-  address: 'c456ed849e1e2be80e8e571ec1a8830ef98d87c324659a0ba44aded5361dbc8d',
-  txId: '6581c87b19eb8ef8357b6d0ad7a96e0981d0f5051f1bbdb1cd4649f056da3b4f',
-};
+const DEPLOYED_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_PRIVATE_PROOF_CONTRACT_ADDRESS ?? '';
+const DEPLOYMENT_TRANSACTION_ID = process.env.NEXT_PUBLIC_PRIVATE_PROOF_DEPLOYMENT_TX_ID ?? '';
 
 interface Transaction {
   type: 'deployment' | 'proof';
@@ -34,13 +32,13 @@ interface DAppState {
 }
 
 function getInitialContractAddress(): string {
-  if (typeof window === 'undefined') return VERIFIED_DEPLOYMENT.address;
-  return localStorage.getItem('midnight-private-proof:preprod') || VERIFIED_DEPLOYMENT.address;
+  if (typeof window === 'undefined') return DEPLOYED_CONTRACT_ADDRESS;
+  return localStorage.getItem('midnight-private-proof:preprod') || DEPLOYED_CONTRACT_ADDRESS;
 }
 
 function getInitialDeploymentTxId(): string {
-  if (typeof window === 'undefined') return VERIFIED_DEPLOYMENT.txId;
-  return localStorage.getItem('midnight-private-proof:deployment-tx') || VERIFIED_DEPLOYMENT.txId;
+  if (typeof window === 'undefined') return DEPLOYMENT_TRANSACTION_ID;
+  return localStorage.getItem('midnight-private-proof:deployment-tx') || DEPLOYMENT_TRANSACTION_ID;
 }
 
 export default function DApp() {
@@ -49,27 +47,19 @@ export default function DApp() {
     contractAddress: getInitialContractAddress(),
     deploymentTxId: getInitialDeploymentTxId(),
     proofCount: 0,
-    status: 'Connect 1AM or Lace on Preprod to continue.',
+    status: 'Connect Lace on Midnight Preprod, enter a private phrase, then deploy or prove.',
     isError: false,
     transactions: [],
     secretPhrase: '',
   });
 
   useEffect(() => {
-    if (state.deploymentTxId && state.deploymentTxId !== VERIFIED_DEPLOYMENT.txId) {
-      const now = new Date().toISOString().split('T')[0].replace(/-/g, '/');
-      setState((s) => ({
-        ...s,
-        transactions: [
-          {
-            type: 'deployment',
-            txId: state.deploymentTxId,
-            timestamp: now,
-            status: 'confirmed',
-          },
-        ],
-      }));
-    }
+    if (!state.deploymentTxId) return;
+    const now = new Date().toISOString().split('T')[0].replace(/-/g, '/');
+    setState((s) => ({
+      ...s,
+      transactions: [{ type: 'deployment', txId: state.deploymentTxId, timestamp: now, status: 'confirmed' }],
+    }));
   }, []);
 
   const showStatus = useCallback((message: string, isError = false) => {
@@ -84,9 +74,7 @@ export default function DApp() {
       setState((s) => ({
         ...s,
         session,
-        status: session.legacyLace
-          ? 'Lace connected on Preprod. Disconnect is available from this page.'
-          : `${session.name} connected. Your proof input remains local to the proving flow.`,
+        status: `${session.name} connected on Preprod. Your phrase and proof salt remain browser-local.`,
         isError: false,
       }));
     } catch (error) {
@@ -115,19 +103,20 @@ export default function DApp() {
       showStatus('Connect a wallet first.', true);
       return;
     }
-    if (state.session.legacyLace) {
-      showStatus('Lace is connected. This existing v4 deployment flow is provided by 1AM; reconnect with 1AM to deploy.', true);
+    if (!state.secretPhrase) {
+      showStatus('Enter a private phrase first. It creates the deployment commitment and is never placed on-chain.', true);
       return;
     }
     try {
-      showStatus('Building, proving, and submitting the deployment through your wallet...');
-      const receipt = await deployPrivateProof(state.session);
+      showStatus('Building the private commitment and submitting the Compact contract through your wallet...');
+      const receipt = await deployPrivateProof(state.session, state.secretPhrase);
       const now = new Date().toISOString().split('T')[0].replace(/-/g, '/');
       setState((s) => ({
         ...s,
         contractAddress: receipt.contractAddress!,
         deploymentTxId: receipt.txId,
-        status: 'Deployment submitted. Wait for Preprod indexing, then submit a private proof.',
+        secretPhrase: '',
+        status: 'Deployment submitted. The phrase was cleared; its random salt is retained only in this browser for future proofs.',
         isError: false,
         transactions: [
           {
@@ -157,10 +146,6 @@ export default function DApp() {
       showStatus('Deploy the Preprod contract first.', true);
       return;
     }
-    if (state.session?.legacyLace) {
-      showStatus('Lace is connected. This existing v4 circuit flow is provided by 1AM; reconnect with 1AM to submit the proof.', true);
-      return;
-    }
     try {
       showStatus('Creating a zero-knowledge proof in the wallet-provided proving flow...');
       if (!state.session) throw new Error('Connect a wallet first.');
@@ -170,8 +155,7 @@ export default function DApp() {
         ...s,
         secretPhrase: '',
         proofCount: s.proofCount + 1,
-        status:
-          'Circuit call submitted. After indexing, the public receipt changes without revealing the phrase.',
+        status: 'Circuit call submitted through the connected wallet. After indexing, the public receipt changes without revealing the phrase or salt.',
         isError: false,
         transactions: [
           {
@@ -192,7 +176,7 @@ export default function DApp() {
   const walletAddress = state.session?.address ?? '';
   const walletName = state.session?.name ?? '';
   const connectDisabled = isConnected;
-  const deployDisabled = !isConnected || state.deploymentTxId !== VERIFIED_DEPLOYMENT.txId;
+  const deployDisabled = !isConnected || Boolean(state.contractAddress);
   const proveDisabled = !isConnected || !state.contractAddress;
 
   return (

@@ -7,6 +7,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { resolveNetwork, getOrCreateSeed, recordDeployment } from './network';
+import { deploymentProofMaterial, materialAsEnvironment } from './proof-material';
 import { createWallet, persistWalletState, unshieldedToken, type WalletContext } from './wallet';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket } from 'ws';
@@ -262,6 +263,11 @@ process.stdout.write(
 
   console.log('  Setting up providers...');
   const providers = await createProviders(walletCtx);
+  const proofMaterial = deploymentProofMaterial();
+  if (proofMaterial.generated) {
+    console.log('  Generated private proof material for this CLI deployment. Store it securely to make later CLI proofs:');
+    console.log(materialAsEnvironment(proofMaterial.material));
+  }
 
   // The wallet's reported DUST balance is a *time-projection* of what its
   // registered NIGHT will eventually generate; the tx-builder spends only
@@ -287,7 +293,7 @@ process.stdout.write(
     try {
       deployed = await deployContract(providers, {
         compiledContract: compiledContract as any,
-        args: [],
+        args: [proofMaterial.material.secret, proofMaterial.material.salt],
       });
       break;
     } catch (err: any) {

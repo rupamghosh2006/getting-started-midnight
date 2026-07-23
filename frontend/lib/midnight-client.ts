@@ -1,4 +1,5 @@
 import type { CompiledContract as CompiledContractType } from '@midnight-ntwrk/compact-js';
+import type { ConnectedAPI, InitialAPI } from '@midnight-ntwrk/dapp-connector-api';
 const { CompiledContract } = await import('@midnight-ntwrk/compact-js');
 const { CostModel, LedgerParameters, Transaction, ZswapChainState } = await import('@midnight-ntwrk/ledger-v8');
 const { ContractState, sampleSigningKey } = await import('@midnight-ntwrk/compact-runtime');
@@ -18,7 +19,6 @@ export interface WalletSession {
   api: any;
   name: string;
   address: string;
-  legacyLace?: boolean;
   providers: {
     zkConfigProvider: any;
     publicDataProvider: any;
@@ -35,6 +35,11 @@ export interface ProofReceipt {
   contractAddress?: string;
 }
 
+type ProofMaterial = {
+  secret: Uint8Array;
+  salt: Uint8Array;
+};
+
 const contractName = 'hello-world';
 const contractPath = '/contract/hello-world';
 
@@ -46,6 +51,43 @@ function fromHex(value: string): Uint8Array {
   const hex = value.startsWith('0x') ? value.slice(2) : value;
   if (hex.length % 2) throw new Error('Wallet returned an invalid transaction encoding.');
   return Uint8Array.from({ length: hex.length / 2 }, (_, i) => Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16));
+}
+
+const saltStoragePrefix = '1am-private-proof:salt:';
+
+function storageKey(contractAddress: string): string {
+  return `${saltStoragePrefix}${contractAddress.toLowerCase()}`;
+}
+
+async function privateSecret(phrase: string): Promise<Uint8Array> {
+  const normalized = phrase.trim();
+  if (normalized.length < 12) {
+    throw new Error('Use a unique private phrase with at least 12 characters.');
+  }
+  const input = new TextEncoder().encode(`1AM Private Proof secret v1\u0000${normalized}`);
+  return new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', input));
+}
+
+function randomSalt(): Uint8Array {
+  const salt = new Uint8Array(32);
+  globalThis.crypto.getRandomValues(salt);
+  return salt;
+}
+
+function rememberSalt(contractAddress: string, salt: Uint8Array): void {
+  globalThis.localStorage.setItem(storageKey(contractAddress), toHex(salt));
+}
+
+function savedSalt(contractAddress: string): Uint8Array {
+  const value = globalThis.localStorage.getItem(storageKey(contractAddress));
+  if (!value) {
+    throw new Error(
+      'This browser has no local proof state for the contract. Deploy it here, or restore the browser-local salt before proving.',
+    );
+  }
+  const salt = fromHex(value);
+  if (salt.byteLength !== 32) throw new Error('The saved local proof state is invalid. Deploy a new contract.');
+  return salt;
 }
 
 function createPublicDataProvider(queryUrl: string) {
@@ -90,43 +132,25 @@ function compiledContract(): any {
   return CompiledContract.make(contractName, Contract).pipe(CompiledContract.withVacantWitnesses);
 }
 
-function connectorCandidate(...candidates: any[]) {
-  return candidates.find(
-    (candidate) => typeof candidate?.connect === 'function' || typeof candidate?.enable === 'function',
-  );
+function connectorCandidate(...candidates: any[]): InitialAPI | undefined {
+  return candidates.find((candidate) => typeof candidate?.connect === 'function') as InitialAPI | undefined;
 }
 
-function laceConnector() {
-  // The current Lace extension injects its Midnight connector here and uses
-  // enable(), whereas 1AM uses connect('preprod').
-  const currentLace = (globalThis as any).lace?.midnight;
-  if (typeof currentLace?.enable === 'function') {
-    return { connector: currentLace, mode: 'enable' as const };
-  }
-
+function laceConnector(): InitialAPI | undefined {
+  // DApp Connector API v4 wallets expose `connect(networkId)`. This keeps
+  // Lace's proof, balance, and submit methods in the same real wallet session
+  // instead of treating a cosmetic `enable()` result as a usable provider.
   const namedConnector = connectorCandidate(
     (globalThis as any).midnight?.mnLace,
     (globalThis as any).midnight?.lace,
     (globalThis as any).mnLace,
     (globalThis as any).lace,
   );
-  if (namedConnector) {
-    return {
-      connector: namedConnector,
-      mode: typeof namedConnector.connect === 'function' ? 'connect' as const : 'enable' as const,
-    };
-  }
+  if (namedConnector) return namedConnector;
 
   const anonymousConnectors = Object.entries((globalThis as any).midnight ?? {})
-    .filter(([key, candidate]) => key !== '1am' && (
-      typeof (candidate as any)?.connect === 'function' || typeof (candidate as any)?.enable === 'function'
-    ));
-  return anonymousConnectors.length === 1
-    ? {
-      connector: anonymousConnectors[0][1],
-      mode: typeof (anonymousConnectors[0][1] as any).connect === 'function' ? 'connect' as const : 'enable' as const,
-    }
-    : undefined;
+    .filter(([key, candidate]) => key !== '1am' && typeof (candidate as any)?.connect === 'function');
+  return anonymousConnectors.length === 1 ? anonymousConnectors[0][1] as InitialAPI : undefined;
 }
 
 function detectedMidnightProviders(): string {
@@ -142,9 +166,9 @@ async function resolveWallet(preferred: string = 'auto') {
     const oneAm = (globalThis as any).midnight?.['1am'];
     const lace = laceConnector();
     if (preferred === '1am' && oneAm) return { connector: oneAm, name: '1AM', mode: 'connect' as const };
-    if (preferred === 'lace' && lace) return { ...lace, name: 'Lace' };
+    if (preferred === 'lace' && lace) return { connector: lace, name: 'Lace' };
     if (preferred === 'auto' && oneAm) return { connector: oneAm, name: '1AM', mode: 'connect' as const };
-    if (preferred === 'auto' && lace) return { ...lace, name: 'Lace' };
+    if (preferred === 'auto' && lace) return { connector: lace, name: 'Lace' };
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   const walletName = preferred === 'lace' ? 'Lace' : preferred === '1am' ? '1AM' : '1AM or Lace';
@@ -156,28 +180,24 @@ async function resolveWallet(preferred: string = 'auto') {
 }
 
 export async function connectWallet(preferred: string = 'auto'): Promise<WalletSession> {
-  const { connector, name, mode } = await resolveWallet(preferred);
-  if (name === 'Lace' && mode === 'enable') {
-    const api = await connector.enable();
-    const state = await api.state?.();
-    const addresses = !state?.address && api.getUsedAddresses ? await api.getUsedAddresses() : [];
-    const address = state?.address ?? addresses?.[0] ?? 'Lace connected';
-
-    return {
-      api: { ...api, disconnect: () => connector.disconnect?.() },
-      name,
-      address,
-      legacyLace: true,
-      providers: {} as any,
-    };
-  }
-
-  const api = await connector.connect('preprod');
+  const { connector, name } = await resolveWallet(preferred);
+  const api: ConnectedAPI = await (connector as InitialAPI).connect('preprod');
+  await api.hintUsage([
+    'getConfiguration',
+    'getShieldedAddresses',
+    'getUnshieldedAddress',
+    'getProvingProvider',
+    'balanceUnsealedTransaction',
+    'submitTransaction',
+  ]);
   const [config, shielded, unshielded] = await Promise.all([
     api.getConfiguration(),
     api.getShieldedAddresses(),
     api.getUnshieldedAddress(),
   ]);
+  if (config.networkId !== 'preprod') {
+    throw new Error(`Lace is connected to ${config.networkId}; switch the wallet to Midnight Preprod and reconnect.`);
+  }
   setNetworkId(config.networkId);
 
   const zkConfigProvider = new FetchZkConfigProvider(
@@ -205,7 +225,10 @@ export async function connectWallet(preferred: string = 'auto'): Promise<WalletS
     walletProvider,
     midnightProvider: {
       async submitTx(tx: any) {
-        const result = await api.submitTransaction(toHex(tx.serialize()));
+        // Connector API v4 specifies no return value for submission. Some
+        // wallets additionally return an ID, so preserve it when available
+        // and otherwise retain a deterministic local receipt identifier.
+        const result = await (api as any).submitTransaction(toHex(tx.serialize()));
         return typeof result === 'string'
           ? result
           : result?.transactionId ?? result?.id ?? toHex(tx.serialize()).slice(0, 64);
@@ -216,15 +239,21 @@ export async function connectWallet(preferred: string = 'auto'): Promise<WalletS
   return { api, name, providers, address: unshielded.unshieldedAddress };
 }
 
-export async function deployPrivateProof(session: WalletSession): Promise<ProofReceipt> {
+export async function deployPrivateProof(session: WalletSession, phrase: string): Promise<ProofReceipt> {
+  const material: ProofMaterial = { secret: await privateSecret(phrase), salt: randomSalt() };
   const deployData = await createUnprovenDeployTx(
     {
       zkConfigProvider: session.providers.zkConfigProvider,
       walletProvider: session.providers.walletProvider,
     },
-    { compiledContract: compiledContract(), args: [], signingKey: sampleSigningKey() },
+    {
+      compiledContract: compiledContract(),
+      args: [material.secret, material.salt],
+      signingKey: sampleSigningKey(),
+    },
   );
   const txId = await submitTxAsync(session.providers, { unprovenTx: deployData.private.unprovenTx });
+  rememberSalt(deployData.public.contractAddress, material.salt);
   return { contractAddress: deployData.public.contractAddress, txId };
 }
 
@@ -233,13 +262,15 @@ export async function provePrivateKnowledge(
   contractAddress: string,
   phrase: string,
 ): Promise<ProofReceipt> {
-  const accessPhrase = new TextEncoder().encode(phrase);
-  if (accessPhrase.byteLength !== 21) throw new Error('The demo phrase must be exactly 21 ASCII bytes.');
+  const material: ProofMaterial = {
+    secret: await privateSecret(phrase),
+    salt: savedSalt(contractAddress),
+  };
   const callData = await createUnprovenCallTx(session.providers, {
     compiledContract: compiledContract(),
     contractAddress,
     circuitId: 'provePrivateKnowledge',
-    args: [accessPhrase],
+    args: [material.secret, material.salt],
   });
   const txId = await submitTxAsync(session.providers, {
     unprovenTx: callData.private.unprovenTx,

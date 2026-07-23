@@ -15,6 +15,7 @@ import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-p
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
 import { resolveNetwork, getOrCreateSeed, getDeployment } from './network';
+import { proofMaterialFromEnvironment } from './proof-material';
 import { createWallet, persistWalletState, unshieldedToken, type WalletContext } from './wallet';
 import { CompiledContract } from '@midnight-ntwrk/compact-js';
 
@@ -168,10 +169,10 @@ async function main() {
 
       switch (choice.trim()) {
         case '1': {
-          const accessPhrase = await rl.question('  Enter private access phrase (not stored on-chain): ');
           console.log('\n  Submitting transaction (this may take 30-60 seconds)...');
           try {
-            const tx = await deployed.callTx.provePrivateKnowledge(accessPhrase);
+            const proofMaterial = proofMaterialFromEnvironment();
+            const tx = await deployed.callTx.provePrivateKnowledge(proofMaterial.secret, proofMaterial.salt);
             console.log('\n  ✅ Private-knowledge proof accepted.');
             console.log(`  Transaction ID: ${tx.public.txId}`);
             console.log(`  Block height: ${tx.public.blockHeight}\n`);

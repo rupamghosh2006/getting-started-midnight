@@ -8,14 +8,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "vercel-build": "node sync-zk-assets.mjs && next build"
+    "vercel-build": "bash ./vercel-build.sh"
   },
   "dependencies": {
-    "next": "^15.2.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
     "@midnight-ntwrk/compact-js": "2.5.0",
     "@midnight-ntwrk/compact-runtime": "0.16.0",
+    "@midnight-ntwrk/dapp-connector-api": "4.0.1",
     "@midnight-ntwrk/ledger-v8": "8.1.0",
     "@midnight-ntwrk/midnight-js-contracts": "4.0.4",
     "@midnight-ntwrk/midnight-js-fetch-zk-config-provider": "4.0.4",
@@ -23,9 +21,9 @@
     "@midnight-ntwrk/midnight-js-indexer-public-data-provider": "4.0.4",
     "@midnight-ntwrk/midnight-js-level-private-state-provider": "4.0.4",
     "@midnight-ntwrk/midnight-js-network-id": "4.0.4",
+    "@midnight-ntwrk/midnight-js-node-zk-config-provider": "4.0.4",
     "@midnight-ntwrk/midnight-js-types": "4.0.4",
     "@midnight-ntwrk/midnight-js-utils": "4.0.4",
-    "@midnight-ntwrk/midnight-js-node-zk-config-provider": "4.0.4",
     "@midnight-ntwrk/onchain-runtime-v3": "3.0.0",
     "@midnight-ntwrk/platform-js": "2.2.4",
     "@midnight-ntwrk/wallet-sdk-abstractions": "2.0.0",
@@ -37,10 +35,13 @@
     "@midnight-ntwrk/wallet-sdk-runtime": "1.0.2",
     "@midnight-ntwrk/wallet-sdk-utilities": "1.1.0",
     "@midnight-ntwrk/zkir-v2": "2.1.0",
-    "buffer": "^6.0.3",
-    "process": "^0.11.10",
     "@scure/base": "^2.0.0",
-    "object-inspect": "^1.12.3"
+    "buffer": "^6.0.3",
+    "next": "^15.2.0",
+    "object-inspect": "^1.12.3",
+    "process": "^0.11.10",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

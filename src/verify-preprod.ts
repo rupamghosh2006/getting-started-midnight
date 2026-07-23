@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
-import { getDeployment, NETWORK_CONFIGS } from './network';
+import { NETWORK_CONFIGS } from './network';
 
 type PublicPreprodDeployment = {
   address: string;
@@ -20,11 +20,10 @@ function getPublicPreprodDeployment(): PublicPreprodDeployment | null {
     };
     if (data.contracts?.preprod?.address) return data.contracts.preprod;
   } catch {
-    // Fall through to the local developer state for legacy CLI deployments.
+    // A public verification must not fall back to a developer's private state.
   }
 
-  const local = getDeployment('preprod');
-  return local ? { address: local.address } : null;
+  return null;
 }
 
 async function main(): Promise<void> {
@@ -41,12 +40,17 @@ async function main(): Promise<void> {
   const artifact = path.resolve(here, '..', 'contracts', 'managed', 'hello-world', 'contract', 'index.js');
   if (!fs.existsSync(artifact)) throw new Error('Compiled contract artifact missing. Run `npm run compile`.');
   const contract = await import(pathToFileURL(artifact).href);
-  const ledger = contract.ledger(state.data) as { latestProofAccepted: boolean; successfulProofs: unknown };
+  const ledger = contract.ledger(state.data) as {
+    secretCommitment: Uint8Array;
+    latestProofAccepted: boolean;
+    successfulProofs: unknown;
+  };
 
   console.log('Preprod contract verified through the public indexer');
   console.log(`Address: ${deployment.address}`);
   if (deployment.transactionId) console.log(`Transaction: ${deployment.transactionId}`);
   console.log(`Explorer: ${deployment.verificationUrl ?? `https://preprod.midnightexplorer.com/search?q=${deployment.address}`}`);
+  console.log(`Sealed commitment: ${Buffer.from(ledger.secretCommitment).toString('hex')}`);
   console.log(`Latest proof accepted: ${ledger.latestProofAccepted}`);
   console.log(`Successful proof counter: ${String(ledger.successfulProofs)}`);
 }
